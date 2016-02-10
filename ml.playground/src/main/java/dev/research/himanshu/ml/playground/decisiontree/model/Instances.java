@@ -16,7 +16,7 @@ public class Instances {
 	private Instance[] instances;
 	private Map<String, Integer> header;
 	
-	public static final String CLASS_NAME = "class";
+	public static final String CLASS_NAME = "Class";
 	public static MathContext globalMathContext = new MathContext(5, RoundingMode.HALF_EVEN);
 
 	public Instances() {

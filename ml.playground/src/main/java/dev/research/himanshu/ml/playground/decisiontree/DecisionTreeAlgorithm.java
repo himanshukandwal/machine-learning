@@ -195,7 +195,7 @@ public class DecisionTreeAlgorithm {
 		for (int index = 0; index < level; index++)
 			seperator.append("| ");
 
-		levelStatement.append(seperator.toString()).append(node.getAttribute().getAttributeName());
+		levelStatement.append(seperator.toString()).append(node.getAttribute().getAttributeName() + " [ " + node.getInformationGain() +" ] ");
 
 		Map<Integer, AttributeValue> nodeAttributeValuesMap = node.getAttribute().getAttributeValues();
 
@@ -210,9 +210,9 @@ public class DecisionTreeAlgorithm {
 			}
 
 			if (reFillMarking)
-				levelStatement.append("\n" + seperator.toString()).append(node.getAttribute().getAttributeName());
+				levelStatement.append("\n" + seperator.toString()).append(node.getAttribute().getAttributeName() + " [ " + node.getInformationGain() +" ]");
 			
-			levelStatement.append(" = " + attributeValue.getAttributeValue() + " : ");
+			levelStatement.append(" = " + attributeValue.getAttributeValue() + " (" + attributeValue.getEntropy() + ")" + " : ");
 			
 			if (matchingChildNode == null) {
 				int maxCount = -1;
@@ -238,7 +238,7 @@ public class DecisionTreeAlgorithm {
 	public static void main(String[] args) throws MLException {
 		DecisionTreeAlgorithm dta = new DecisionTreeAlgorithm();
 		dta.train(
-				"/Users/Heman/Documents/workstation/Developement_Studio/Java_Laboratory/Leisure_WorkZones/Eclipse_Workspaces/Machine-Learning/ml.playground/src/main/resources/data_sets_1/testing.txt");
+				"/Users/Heman/Documents/workstation/Developement_Studio/Java_Laboratory/Leisure_WorkZones/Eclipse_Workspaces/Machine-Learning/ml.playground/src/main/resources/data_sets_1/training_set.csv");
 		
 		System.out.println(" -- loaded training data !");
 		

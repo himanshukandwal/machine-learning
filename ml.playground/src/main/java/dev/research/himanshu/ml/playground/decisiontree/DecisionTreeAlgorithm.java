@@ -2,11 +2,9 @@ package dev.research.himanshu.ml.playground.decisiontree;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import dev.research.himanshu.ml.playground.decisiontree.model.Attribute;
 import dev.research.himanshu.ml.playground.decisiontree.model.AttributeValue;
@@ -27,11 +25,8 @@ public class DecisionTreeAlgorithm {
 	private Instances trainingInstances;
 	private BigDecimal headerEntropyValue;
 	private Node rootNode;
-	private Set<String> processedAttributes = new HashSet<String>();
-	private List<AttributeValue> candidatesNodesList;
 	
 	public DecisionTreeAlgorithm() {
-		getProcessedAttributes().add(Instances.CLASS_NAME);
 	}
 	
 	public Instances getTrainingInstances() {
@@ -58,17 +53,6 @@ public class DecisionTreeAlgorithm {
 		this.rootNode = rootNode;
 	}
 	
-	public Set<String> getProcessedAttributes() {
-		return processedAttributes;
-	}
-	
-	public List<AttributeValue> getCandidatesNodesList() {
-		if (candidatesNodesList == null) {
-			candidatesNodesList = new ArrayList<AttributeValue>();
-		}
-		return candidatesNodesList;
-	}
-	
 	public void train(String location) throws MLException {
 		
 		// load the data set, process it !
@@ -86,7 +70,7 @@ public class DecisionTreeAlgorithm {
 		Attribute bestInitialAttribute = null;
 		
 		for (String attributeName : getTrainingInstances().getHeader().keySet()) {
-			if (!getProcessedAttributes().contains(attributeName)) {
+			if (!attributeName.equals(Instances.CLASS_NAME)) {
 
 				Map<Integer, AttributeValue> attributeValues = getTrainingInstances().getIndexer()
 						.getAttributeInstanceIndexesByName(attributeName).getAttributeValues();
@@ -101,71 +85,71 @@ public class DecisionTreeAlgorithm {
 		}
 		
 		bestInitialAttribute.setInformationGain(getHeaderEntropyValue().subtract(minInitialAttributeEntropy, Instances.globalMathContext));
-		setRootNode(new Node(null, bestInitialAttribute, getTrainingInstances().getIndexer().getAttributeInstanceIndexesByName(bestInitialAttribute.getAttributeName())));
+		Node rootNode = new Node(null, bestInitialAttribute, getTrainingInstances().getIndexer().getAttributeInstanceIndexesByName(bestInitialAttribute.getAttributeName()));
+		
+		setRootNode(rootNode);
+		List<String> processedAttributes = new ArrayList<String>();
+		processedAttributes.add(Instances.CLASS_NAME);
+		processedAttributes.add(bestInitialAttribute.getAttributeName());		
+		rootNode.setProcessedAttributes(processedAttributes);
 		
 		for (AttributeValue attributeValue : bestInitialAttribute.getAttributeValues().values()) {
-			if (attributeValue.getEntropy().compareTo(new BigDecimal(0)) != 0)
-				getCandidatesNodesList().add(attributeValue);
-			
+			if (attributeValue.getEntropy().compareTo(new BigDecimal(0)) != 0) {
+				rootNode.getCandidatesNodesList().add(attributeValue);
+			}
 			attributeValue.setCurrentNode(getRootNode());
 		}
-		
-		getProcessedAttributes().add(bestInitialAttribute.getAttributeName());
 	}
 
-	/* Tree construction will be breadth wise! */
-	public void recursivelyGenerateDecisionTree() throws MLException {
+	public void recursivelyGenerateDecisionTree(Node parent) throws MLException {
 		
-		/* base condition */
-		if (getProcessedAttributes().size() == getTrainingInstances().getHeader().size())
-			return;
-		
-		BigDecimal minAttributeEntropy = null;
-		Attribute bestAttribute = null;
-		InstanceIndexer bestInstanceIndexer = null;
-		AttributeValue processedCandidateAttributeValue = null;
-		
-		for (String attributeName : getTrainingInstances().getHeader().keySet()) {
-			if (!getProcessedAttributes().contains(attributeName)) {
-				
-				for (AttributeValue candidateAttributeValue : getCandidatesNodesList()) {
-					
-					InstanceIndexer localInstanceIndexer = candidateAttributeValue.getCurrentNode().getIndexer()
-							.andThenChainAttributeInstanceIndexes(candidateAttributeValue.getAttributeName(), candidateAttributeValue.getAttributeValue())
+		for (Iterator<AttributeValue> candidateAttributeValueIterator = parent.getCandidatesNodesList().iterator(); candidateAttributeValueIterator.hasNext();) {
+			AttributeValue candidateAttributeValue = candidateAttributeValueIterator.next();
+			
+			BigDecimal minAttributeEntropy = null;
+			Attribute bestAttribute = null;
+			InstanceIndexer bestInstanceIndexer = null;
+			
+			for (String attributeName : getTrainingInstances().getHeader().keySet()) {
+				if (!parent.getProcessedAttributes().contains(attributeName)) {
+
+					InstanceIndexer localInstanceIndexer = parent.getIndexer()
+							.andThenChainAttributeInstanceIndexes(candidateAttributeValue.getAttributeName(),
+									candidateAttributeValue.getAttributeValue())
 							.andThenChainAttributeInstanceIndexes(attributeName);
-					
+
 					Map<Integer, AttributeValue> attributeValues = localInstanceIndexer.getAttributeValues();
-					
+
 					BigDecimal attributeEntropyValue = getTrainingInstances().calculateEntropy(attributeValues);
-					
+
 					if (minAttributeEntropy == null || minAttributeEntropy.compareTo(attributeEntropyValue) > 0) {
 						minAttributeEntropy = attributeEntropyValue;
 						bestAttribute = new Attribute(attributeName, attributeValues, attributeEntropyValue);
 						bestInstanceIndexer = localInstanceIndexer;
-						processedCandidateAttributeValue = candidateAttributeValue;
 					}
 				}
 			}
-		}
-
-		bestAttribute.setInformationGain(processedCandidateAttributeValue.getCurrentNode().getAttribute().getInformationGain()
-				.subtract(minAttributeEntropy, Instances.globalMathContext));
-		
-		Node currentNode = new Node(processedCandidateAttributeValue.getCurrentNode(), bestAttribute, bestInstanceIndexer);
-		processedCandidateAttributeValue.getCurrentNode().addChild(currentNode);
-		currentNode.setEdgeAttributeValue(processedCandidateAttributeValue);
-		
-		getCandidatesNodesList().remove(processedCandidateAttributeValue);
-		
-		for (AttributeValue attributeValue : bestAttribute.getAttributeValues().values()) {
-			if (attributeValue.getEntropy().compareTo(new BigDecimal(0)) != 0) {
-				getCandidatesNodesList().add(attributeValue);
-				attributeValue.setCurrentNode(currentNode);
+			
+			if (bestAttribute != null) {
+				bestAttribute.setInformationGain(parent.getAttribute().getInformationGain().subtract(minAttributeEntropy, Instances.globalMathContext));
+				
+				Node currentNode = new Node(parent, bestAttribute, bestInstanceIndexer);
+				parent.addChild(currentNode);
+				currentNode.setEdgeAttributeValue(candidateAttributeValue);
+				
+				candidateAttributeValueIterator.remove();
+				currentNode.getProcessedAttributes().addAll(parent.getProcessedAttributes());
+				currentNode.getProcessedAttributes().add(bestAttribute.getAttributeName());
+				
+				for (AttributeValue attributeValue : bestAttribute.getAttributeValues().values()) {
+					if (attributeValue.getEntropy().compareTo(new BigDecimal(0)) != 0) {
+						currentNode.getCandidatesNodesList().add(attributeValue);
+						recursivelyGenerateDecisionTree(currentNode);
+					}
+					attributeValue.setCurrentNode(currentNode);
+				}
 			}
 		}
-		
-		System.out.println(" processed attribute : " + bestAttribute.getAttributeName());
-		getProcessedAttributes().add(bestAttribute.getAttributeName());
 	}
 	
 	public void generateDecisionTree() throws MLException {
@@ -173,9 +157,7 @@ public class DecisionTreeAlgorithm {
 			generateInitialDecisionTree();
 			System.out.println(" generated initial Decision tree : " + getRootNode().getAttribute().getAttributeName());
 			
-			while (getProcessedAttributes().size() != getTrainingInstances().getHeader().size() && getCandidatesNodesList().size() > 0) {
-				recursivelyGenerateDecisionTree();
-			}
+			recursivelyGenerateDecisionTree(getRootNode());
 		} catch (MLException exception) {
 			throw new MLException(" exception while generating decision tree !", exception);
 		}

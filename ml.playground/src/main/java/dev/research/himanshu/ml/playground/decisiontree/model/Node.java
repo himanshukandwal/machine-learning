@@ -16,6 +16,8 @@ public class Node {
 	private List<Node> children;
 	private InstanceIndexer indexer;
 	private AttributeValue edgeAttributeValue;
+	private List<String> processedAttributes;
+	private List<AttributeValue> candidatesNodesList;
 	
 	public Node() {}
 
@@ -85,5 +87,25 @@ public class Node {
 	public void setIndexer(InstanceIndexer indexer) {
 		this.indexer = indexer;
 	}
-
+	
+	public List<String> getProcessedAttributes() {
+		if (processedAttributes == null)
+			processedAttributes = new ArrayList<String>();
+		return processedAttributes;
+	}
+	
+	public void setProcessedAttributes(List<String> processedAttributes) {
+		this.processedAttributes = processedAttributes;
+	}
+	
+	public List<AttributeValue> getCandidatesNodesList() {
+		if (candidatesNodesList == null)
+			candidatesNodesList = new ArrayList<AttributeValue>();
+		return candidatesNodesList;
+	}
+	
+	public void setCandidatesNodesList(List<AttributeValue> candidatesNodesList) {
+		this.candidatesNodesList = candidatesNodesList;
+	}
+	
 }

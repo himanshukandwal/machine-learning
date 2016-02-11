@@ -18,6 +18,7 @@ public class Node {
 	private AttributeValue edgeAttributeValue;
 	private List<String> processedAttributes;
 	private List<AttributeValue> candidatesNodesList;
+	private DecisionNode decisionNode;
 	
 	public Node() {}
 
@@ -106,6 +107,14 @@ public class Node {
 	
 	public void setCandidatesNodesList(List<AttributeValue> candidatesNodesList) {
 		this.candidatesNodesList = candidatesNodesList;
+	}
+	
+	public DecisionNode getDecisionNode() {
+		return decisionNode;
+	}
+	
+	public void setDecisionNode(DecisionNode decisionNode) {
+		this.decisionNode = decisionNode;
 	}
 	
 }

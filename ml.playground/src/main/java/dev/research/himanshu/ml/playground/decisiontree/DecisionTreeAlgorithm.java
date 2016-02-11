@@ -7,7 +7,10 @@ import java.util.List;
 import java.util.Map;
 
 import dev.research.himanshu.ml.playground.decisiontree.model.Attribute;
+import dev.research.himanshu.ml.playground.decisiontree.model.AttributeDO;
 import dev.research.himanshu.ml.playground.decisiontree.model.AttributeValue;
+import dev.research.himanshu.ml.playground.decisiontree.model.DecisionNode;
+import dev.research.himanshu.ml.playground.decisiontree.model.Instance;
 import dev.research.himanshu.ml.playground.decisiontree.model.InstanceIndexer;
 import dev.research.himanshu.ml.playground.decisiontree.model.Instances;
 import dev.research.himanshu.ml.playground.decisiontree.model.MLException;
@@ -145,6 +148,22 @@ public class DecisionTreeAlgorithm {
 					if (attributeValue.getEntropy().compareTo(new BigDecimal(0)) != 0) {
 						currentNode.getCandidatesNodesList().add(attributeValue);
 						recursivelyGenerateDecisionTree(currentNode);
+					} else {
+						DecisionNode decisionNode = new DecisionNode(currentNode);
+						
+						int maxCount = -1;
+						int maxCountValue = -1;
+						for (Map.Entry<Integer, Integer> classifiedCountMapEntry : attributeValue.getClassifiedCountMap().entrySet()) {
+							int value = classifiedCountMapEntry.getKey();
+							int count = classifiedCountMapEntry.getValue();
+
+							if (maxCount == -1 || maxCount < count) {
+								maxCount = count;
+								maxCountValue = value;
+							}
+						}
+						decisionNode.setDecision(maxCountValue);
+						currentNode.setDecisionNode(decisionNode);
 					}
 					attributeValue.setCurrentNode(currentNode);
 				}
@@ -175,9 +194,9 @@ public class DecisionTreeAlgorithm {
 		StringBuffer seperator = new StringBuffer();
 
 		for (int index = 0; index < level; index++)
-			seperator.append("| ");
+			seperator.append(" | ");
 
-		levelStatement.append(seperator.toString()).append(node.getAttribute().getAttributeName() + " [ " + node.getInformationGain() +" ] ");
+		levelStatement.append(seperator.toString()).append(node.getAttribute().getAttributeName());
 
 		Map<Integer, AttributeValue> nodeAttributeValuesMap = node.getAttribute().getAttributeValues();
 
@@ -192,29 +211,57 @@ public class DecisionTreeAlgorithm {
 			}
 
 			if (reFillMarking)
-				levelStatement.append("\n" + seperator.toString()).append(node.getAttribute().getAttributeName() + " [ " + node.getInformationGain() +" ]");
+				levelStatement.append("\n" + seperator.toString()).append(node.getAttribute().getAttributeName());
 			
-			levelStatement.append(" = " + attributeValue.getAttributeValue() + " (" + attributeValue.getEntropy() + ")" + " : ");
+			levelStatement.append(" = " + attributeValue.getAttributeValue() + " : ");
 			
 			if (matchingChildNode == null) {
-				int maxCount = -1;
-				int maxCountValue = -1;
-				
-				for (Map.Entry<Integer, Integer> classifiedCountMapEntry : attributeValue.getClassifiedCountMap().entrySet()) {
-					int value = classifiedCountMapEntry.getKey();
-					int count = classifiedCountMapEntry.getValue();
-
-					maxCountValue = (maxCount == -1 || maxCount < count ? value : maxCountValue);
-					maxCount = (maxCount == -1 || maxCount < count ? count : maxCount);
-				}
-
-				levelStatement.append(maxCountValue);
+				levelStatement.append(node.getDecisionNode().getDecision());
 				reFillMarking = true;
 			} else {
 				recursivePrintDecisionTree(levelStatement, level + 1, matchingChildNode);
 				reFillMarking = true;
 			}
 		}
+	}
+	
+	public boolean validateInstance(Instance instance) {
+		AttributeDO[] attributeDOs = instance.getAttributeDOs();
+		Integer attributeIndex = getTrainingInstances().getHeader().get(Instances.CLASS_NAME);
+		
+		if (validate(getRootNode(), attributeDOs) == attributeDOs[attributeIndex].getValue())
+			return true;
+		else
+			return false;
+	}
+	
+	public Integer validate(Node node, AttributeDO[] attributeDOs) {
+		String currentAttributeName = node.getAttribute().getAttributeName();
+		Integer attributeIndex = getTrainingInstances().getHeader().get(currentAttributeName);
+		
+		AttributeDO attributeDO = attributeDOs [attributeIndex];
+		Integer attributeValue = attributeDO.getValue();
+		
+		Node nextLevelNode = null;
+		for (Node childNode : node.getChildren()) {
+			if (childNode.getEdgeAttributeValue().getAttributeValue().equals(attributeValue))
+				nextLevelNode = childNode;
+		}
+		
+		if (nextLevelNode == null) {
+			return node.getDecisionNode().getDecision();
+		}
+		
+		return validate(nextLevelNode, attributeDOs);
+	}
+	
+	public BigDecimal validateInstances(Instances instances) {
+		int trueCount = 0;
+		
+		for (Instance instance : instances.getInstances())
+			trueCount += (validateInstance(instance) ? 1 : 0);
+		
+		return new BigDecimal(trueCount).divide(new BigDecimal(instances.getInstances().length), Instances.globalMathContext);
 	}
 	
 }

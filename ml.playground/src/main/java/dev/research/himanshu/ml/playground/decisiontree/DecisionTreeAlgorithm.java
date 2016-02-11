@@ -217,14 +217,4 @@ public class DecisionTreeAlgorithm {
 		}
 	}
 	
-	public static void main(String[] args) throws MLException {
-		DecisionTreeAlgorithm dta = new DecisionTreeAlgorithm();
-		dta.train(
-				"/Users/Heman/Documents/workstation/Developement_Studio/Java_Laboratory/Leisure_WorkZones/Eclipse_Workspaces/Machine-Learning/ml.playground/src/main/resources/data_sets_1/training_set.csv");
-		
-		System.out.println(" -- loaded training data !");
-		
-		dta.generateDecisionTree();
-		dta.printDecisionTree();
-	}
 }

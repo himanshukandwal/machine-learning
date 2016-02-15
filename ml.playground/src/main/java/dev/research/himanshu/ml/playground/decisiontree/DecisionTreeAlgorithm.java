@@ -158,14 +158,15 @@ public class DecisionTreeAlgorithm {
 				currentNode.getProcessedAttributes().add(bestAttribute.getAttributeName());
 				
 				for (AttributeValue attributeValue : bestAttribute.getAttributeValues().values()) {
-					if (attributeValue.getEntropy().compareTo(new BigDecimal(0)) != 0) {
+					if (attributeValue.getEntropy().compareTo(new BigDecimal(0)) != 0 
+							&& currentNode.getProcessedAttributes().size() < getTrainingInstances().getHeader().size()) {
 						currentNode.getCandidatesNodesList().add(attributeValue);
 						recursivelyGenerateDecisionTree(currentNode);
 					} else {
 						DecisionNode decisionNode = new DecisionNode(currentNode);
 						
-						int maxCount = -1;
-						int maxCountValue = -1;
+						int maxCount = 0;
+						int maxCountValue = 0;
 						for (Map.Entry<Integer, Integer> classifiedCountMapEntry : attributeValue.getClassifiedCountMap().entrySet()) {
 							int value = classifiedCountMapEntry.getKey();
 							int count = classifiedCountMapEntry.getValue();
@@ -179,26 +180,6 @@ public class DecisionTreeAlgorithm {
 						currentNode.setDecisionNode(decisionNode);
 					}
 					attributeValue.setCurrentNode(currentNode);
-				}
-			} else {
-				candidateAttributeValueIterator.remove();
-				for (AttributeValue attributeValue : parent.getAttribute().getAttributeValues().values()) {
-					DecisionNode decisionNode = new DecisionNode(parent);
-
-					int maxCount = -1;
-					int maxCountValue = -1;
-					for (Map.Entry<Integer, Integer> classifiedCountMapEntry : attributeValue.getClassifiedCountMap()
-							.entrySet()) {
-						int value = classifiedCountMapEntry.getKey();
-						int count = classifiedCountMapEntry.getValue();
-
-						if (maxCount == -1 || maxCount < count) {
-							maxCount = count;
-							maxCountValue = value;
-						}
-					}
-					decisionNode.setDecision(maxCountValue);
-					parent.setDecisionNode(decisionNode);
 				}
 			}
 		}

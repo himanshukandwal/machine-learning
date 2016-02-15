@@ -93,6 +93,15 @@ public class Instances {
 			}
 			attributeValues = discreteValuesMap;
 			
+			// bug fix : if there is only one type of instance attribute type, and hence only one entry in map. 
+			if (attributeValues.size() == 1) {
+				if (attributeValues.keySet().contains(1)) {
+					discreteValuesMap.put(0, new AttributeValue(attributeValues.get(1).getAttributeName(), 0, 0));
+				} else {
+					discreteValuesMap.put(1, new AttributeValue(attributeValues.get(0).getAttributeName(), 1, 0));
+				}
+			}
+			
 		} else {
 			throw new MLException("No attribute name mentioned in Indexer, hence cannot provide attribute values !");
 		}

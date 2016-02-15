@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import dev.research.himanshu.ml.playground.decisiontree.model.Attribute;
 import dev.research.himanshu.ml.playground.decisiontree.model.AttributeDO;
@@ -190,7 +191,6 @@ public class DecisionTreeAlgorithm {
 	public void generateDecisionTree(boolean withVariance) throws MLException {
 		try {
 			generateInitialDecisionTree(withVariance);
-			System.out.println(" generated initial Decision tree : " + (withVariance ? " (with variance)" : "(without variance)") + getRootNode().getAttribute().getAttributeName());
 			
 			recursivelyGenerateDecisionTree(getRootNode(), withVariance);
 		} catch (MLException exception) {
@@ -281,12 +281,139 @@ public class DecisionTreeAlgorithm {
 				.multiply(new BigDecimal(100), Instances.globalMathContext);
 	}
 	
-	public void pruneDecisionTree() {
+	public static void removeRandomNode(Node node) {
+		Random random = new Random();
+		Node replacingNode = null;
+		Node traversingNode = node;
+		int depth = 1;
+		boolean isDetected = false;
 		
+		while (traversingNode.getChildren().size() > 0) {
+			int randomAttributeIndex = random.nextInt(traversingNode.getChildren().size());
+			
+			if (traversingNode.getChildren().size() == 0) {
+				break;
+			} else {
+				traversingNode = traversingNode.getChildren().get(randomAttributeIndex);
+			}
+			
+			if (depth == (random.nextInt(10) + 3) && !isDetected) {
+				replacingNode = traversingNode;
+				isDetected = true;
+			}
+			
+			depth ++;
+		}
+		
+		DecisionNode decisionNode = traversingNode.getDecisionNode();
+		
+		if (replacingNode == null || replacingNode == node || replacingNode.getParent() == null)
+			return;
+		
+		Node replacingNodeParent = replacingNode.getParent();
+		replacingNodeParent.getChildren().clear();
+		replacingNodeParent.setDecisionNode(decisionNode);
+	}
+	
+	public static DecisionTreeAlgorithm pruneDecisionTree(int lvalue, int kvalue, String trainingSetLocation, String validationSetLocation) {
+		DecisionTreeAlgorithm bestDta = null;
+		
+		try {
+			DecisionTreeAlgorithm dtaWithoutVariance = new DecisionTreeAlgorithm();
+			dtaWithoutVariance.train(trainingSetLocation);
+			dtaWithoutVariance.generateDecisionTree();
+			
+			List<String> validationDataLines = Utility.loadFile(validationSetLocation);
+			Instances validationInstances = Utility.loadInstancesFromData(validationDataLines);
+			
+			BigDecimal originalAccuracy = dtaWithoutVariance.validateInstances(validationInstances);
+			
+			for (int lvalueIndex = 0; lvalueIndex < lvalue; lvalueIndex++) {
+				int mvalue = new Random().nextInt(kvalue) + 1;
+				
+				dtaWithoutVariance = new DecisionTreeAlgorithm();
+				dtaWithoutVariance.train(trainingSetLocation);
+				dtaWithoutVariance.generateDecisionTree();
+				
+				for (int mvalueIndex = 0; mvalueIndex < mvalue; mvalueIndex++)
+					removeRandomNode(dtaWithoutVariance.getRootNode());
+				
+				BigDecimal runAccuracy = dtaWithoutVariance.validateInstances(validationInstances);
+				if (originalAccuracy.compareTo(runAccuracy) < 0) {
+					bestDta = dtaWithoutVariance;
+					originalAccuracy = runAccuracy;
+				}
+			}
+		} catch (MLException e) {
+			e.printStackTrace();
+		}
+		
+		return bestDta;
 	}
 	
 	public static void main(String[] args) {
+		if (args == null || args.length < 6) {
+			System.out.println(" Insufficient number of parameters : ");
+			System.out.println(" Please provide params : ");
+			System.out.println(" a) L");
+			System.out.println(" b) K");
+			System.out.println(" c) <training-set>");
+			System.out.println(" d) <validation-set>");
+			System.out.println(" e) <test-set>");
+			System.out.println(" f) <to-print>");
+			
+			System.exit(1);
+		} 
 		
+		try {
+			int lvalue = Integer.valueOf(args[0]);
+			int kvalue = Integer.valueOf(args[1]);
+			
+			String trainingSetLocation = args[2];
+			String validationSetLocation = args[3];
+			String testSetLocation = args[4];
+			Boolean toPrint = Boolean.valueOf((args[5].equalsIgnoreCase("yes") ? true : false));
+			
+			DecisionTreeAlgorithm dtaWithoutVariance = new DecisionTreeAlgorithm();
+			DecisionTreeAlgorithm dtaWithVariance = new DecisionTreeAlgorithm();
+			
+			dtaWithoutVariance.train(trainingSetLocation);
+			dtaWithoutVariance.generateDecisionTree();
+			dtaWithVariance.train(trainingSetLocation, true);
+			dtaWithVariance.generateDecisionTree(true);
+			
+			if (toPrint) {
+				System.out.println(" Decision Tree without Variance : ");
+				dtaWithoutVariance.printDecisionTree();
+				
+				System.out.println(" Decision Tree with Variance : ");
+				dtaWithVariance.printDecisionTree();
+			}
+			
+			List<String> validationDataLines = Utility.loadFile(validationSetLocation);
+			Instances validationInstances = Utility.loadInstancesFromData(validationDataLines);
+			
+			System.out.println(" Validation data accuracy [without variance] : " + dtaWithoutVariance.validateInstances(validationInstances));
+			System.out.println(" Validation data accuracy [with variance] : " + dtaWithVariance.validateInstances(validationInstances));
+			
+			List<String> testDataLines = Utility.loadFile(testSetLocation);
+			Instances testInstances = Utility.loadInstancesFromData(testDataLines);
+			
+			System.out.println(" Test data accuracy [without variance] : " + dtaWithoutVariance.validateInstances(testInstances));
+			System.out.println(" Test data accuracy [with variance] : " + dtaWithVariance.validateInstances(testInstances));
+			
+			DecisionTreeAlgorithm bestDta = pruneDecisionTree(lvalue, kvalue, trainingSetLocation, validationSetLocation);
+			if (toPrint) {
+				System.out.println(" Best Decision Tree : ");
+				bestDta.printDecisionTree();
+				
+				System.out.println(" Best Decision Tree accuracy [with variance] : " + bestDta.validateInstances(validationInstances));
+			}
+			
+		} catch (MLException e) {
+			e.printStackTrace();
+			System.exit(1);
+		}
 	}
 	
 }

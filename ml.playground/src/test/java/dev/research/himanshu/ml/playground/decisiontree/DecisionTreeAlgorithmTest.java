@@ -11,25 +11,25 @@ public class DecisionTreeAlgorithmTest extends TestCase {
 
 	public void testDecisionTreeWithoutVariance() throws Exception {
 		DecisionTreeAlgorithm dta = new DecisionTreeAlgorithm();
-		dta.train(System.getProperty("user.dir") + "/src/main/resources/data_sets_1/training_set.csv");
+		dta.train(System.getProperty("user.dir") + "/src/main/resources/data_sets2/training_set.csv");
 		dta.generateDecisionTree();
 		dta.printDecisionTree();
 	}
 	
 	public void testDecisionTreeWithVariance() throws Exception {
 		DecisionTreeAlgorithm dta = new DecisionTreeAlgorithm();
-		dta.train(System.getProperty("user.dir") + "/src/main/resources/data_sets_1/training_set.csv", true);
+		dta.train(System.getProperty("user.dir") + "/src/main/resources/data_sets2/training_set.csv", true);
 		dta.generateDecisionTree(true);
 		dta.printDecisionTree();
 	}
 	
 	public void testDecisionTreeWithTrainingDataWithoutVariance() throws Exception {
 		DecisionTreeAlgorithm dta = new DecisionTreeAlgorithm();
-		dta.train(System.getProperty("user.dir") + "/src/main/resources/data_sets_1/training_set.csv");
+		dta.train(System.getProperty("user.dir") + "/src/main/resources/data_sets2/training_set.csv");
 		dta.generateDecisionTree();
 		dta.printDecisionTree();
 	
-		List<String> validationDataLines = Utility.loadFile(System.getProperty("user.dir") + "/src/main/resources/data_sets_1/training_set.csv");
+		List<String> validationDataLines = Utility.loadFile(System.getProperty("user.dir") + "/src/main/resources/data_sets2/training_set.csv");
 		Instances validationInstances = Utility.loadInstancesFromData(validationDataLines);
 		BigDecimal accuracy = dta.validateInstances(validationInstances);
 		
@@ -38,11 +38,11 @@ public class DecisionTreeAlgorithmTest extends TestCase {
 	
 	public void testDecisionTreeWithTrainingDataWithVariance() throws Exception {
 		DecisionTreeAlgorithm dta = new DecisionTreeAlgorithm();
-		dta.train(System.getProperty("user.dir") + "/src/main/resources/data_sets_1/training_set.csv", true);
+		dta.train(System.getProperty("user.dir") + "/src/main/resources/data_sets2/training_set.csv", true);
 		dta.generateDecisionTree(true);
 		dta.printDecisionTree();
 	
-		List<String> validationDataLines = Utility.loadFile(System.getProperty("user.dir") + "/src/main/resources/data_sets_1/training_set.csv");
+		List<String> validationDataLines = Utility.loadFile(System.getProperty("user.dir") + "/src/main/resources/data_sets2/training_set.csv");
 		Instances validationInstances = Utility.loadInstancesFromData(validationDataLines);
 		BigDecimal accuracy = dta.validateInstances(validationInstances);
 		
@@ -51,11 +51,11 @@ public class DecisionTreeAlgorithmTest extends TestCase {
 	
 	public void testDecisionTreeWithValidationDataWithoutVariance() throws Exception {
 		DecisionTreeAlgorithm dta = new DecisionTreeAlgorithm();
-		dta.train(System.getProperty("user.dir") + "/src/main/resources/data_sets_1/training_set.csv");
+		dta.train(System.getProperty("user.dir") + "/src/main/resources/data_sets2/training_set.csv");
 		dta.generateDecisionTree();
 		dta.printDecisionTree();
 		
-		List<String> validationDataLines = Utility.loadFile(System.getProperty("user.dir") + "/src/main/resources/data_sets_1/validation_set.csv");
+		List<String> validationDataLines = Utility.loadFile(System.getProperty("user.dir") + "/src/main/resources/data_sets2/validation_set.csv");
 		Instances validationInstances = Utility.loadInstancesFromData(validationDataLines);
 		BigDecimal accuracy = dta.validateInstances(validationInstances);
 		
@@ -64,11 +64,11 @@ public class DecisionTreeAlgorithmTest extends TestCase {
 	
 	public void testDecisionTreeWithValidationDataWithVariance() throws Exception {
 		DecisionTreeAlgorithm dta = new DecisionTreeAlgorithm();
-		dta.train(System.getProperty("user.dir") + "/src/main/resources/data_sets_1/training_set.csv", true);
+		dta.train(System.getProperty("user.dir") + "/src/main/resources/data_sets2/training_set.csv", true);
 		dta.generateDecisionTree(true);
 		dta.printDecisionTree();
 		
-		List<String> validationDataLines = Utility.loadFile(System.getProperty("user.dir") + "/src/main/resources/data_sets_1/validation_set.csv");
+		List<String> validationDataLines = Utility.loadFile(System.getProperty("user.dir") + "/src/main/resources/data_sets2/validation_set.csv");
 		Instances validationInstances = Utility.loadInstancesFromData(validationDataLines);
 		BigDecimal accuracy = dta.validateInstances(validationInstances);
 		
@@ -76,4 +76,30 @@ public class DecisionTreeAlgorithmTest extends TestCase {
 		
 	}
 	
+	public void testDecisionTreeWithTestDataWithoutVariance() throws Exception {
+		DecisionTreeAlgorithm dta = new DecisionTreeAlgorithm();
+		dta.train(System.getProperty("user.dir") + "/src/main/resources/data_sets2/training_set.csv");
+		dta.generateDecisionTree();
+		dta.printDecisionTree();
+		
+		List<String> validationDataLines = Utility.loadFile(System.getProperty("user.dir") + "/src/main/resources/data_sets2/test_set.csv");
+		Instances validationInstances = Utility.loadInstancesFromData(validationDataLines);
+		BigDecimal accuracy = dta.validateInstances(validationInstances);
+		
+		System.out.println(accuracy);
+	}
+	
+	public void testDecisionTreeWithTestDataWithVariance() throws Exception {
+		DecisionTreeAlgorithm dta = new DecisionTreeAlgorithm();
+		dta.train(System.getProperty("user.dir") + "/src/main/resources/data_sets2/training_set.csv", true);
+		dta.generateDecisionTree(true);
+		dta.printDecisionTree();
+		
+		List<String> validationDataLines = Utility.loadFile(System.getProperty("user.dir") + "/src/main/resources/data_sets2/test_set.csv");
+		Instances validationInstances = Utility.loadInstancesFromData(validationDataLines);
+		BigDecimal accuracy = dta.validateInstances(validationInstances);
+		
+		System.out.println(accuracy);
+		
+	}
 }

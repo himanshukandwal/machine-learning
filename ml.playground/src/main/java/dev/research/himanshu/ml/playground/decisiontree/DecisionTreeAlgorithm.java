@@ -180,6 +180,26 @@ public class DecisionTreeAlgorithm {
 					}
 					attributeValue.setCurrentNode(currentNode);
 				}
+			} else {
+				candidateAttributeValueIterator.remove();
+				for (AttributeValue attributeValue : parent.getAttribute().getAttributeValues().values()) {
+					DecisionNode decisionNode = new DecisionNode(parent);
+
+					int maxCount = -1;
+					int maxCountValue = -1;
+					for (Map.Entry<Integer, Integer> classifiedCountMapEntry : attributeValue.getClassifiedCountMap()
+							.entrySet()) {
+						int value = classifiedCountMapEntry.getKey();
+						int count = classifiedCountMapEntry.getValue();
+
+						if (maxCount == -1 || maxCount < count) {
+							maxCount = count;
+							maxCountValue = value;
+						}
+					}
+					decisionNode.setDecision(maxCountValue);
+					parent.setDecisionNode(decisionNode);
+				}
 			}
 		}
 	}
@@ -315,13 +335,13 @@ public class DecisionTreeAlgorithm {
 		replacingNodeParent.setDecisionNode(decisionNode);
 	}
 	
-	public static DecisionTreeAlgorithm pruneDecisionTree(int lvalue, int kvalue, String trainingSetLocation, String validationSetLocation) {
+	public static DecisionTreeAlgorithm pruneDecisionTree(int lvalue, int kvalue, String trainingSetLocation, String validationSetLocation, boolean withVariance) {
 		DecisionTreeAlgorithm bestDta = null;
 		
 		try {
 			DecisionTreeAlgorithm dtaWithoutVariance = new DecisionTreeAlgorithm();
-			dtaWithoutVariance.train(trainingSetLocation);
-			dtaWithoutVariance.generateDecisionTree();
+			dtaWithoutVariance.train(trainingSetLocation, withVariance);
+			dtaWithoutVariance.generateDecisionTree(withVariance);
 			
 			List<String> validationDataLines = Utility.loadFile(validationSetLocation);
 			Instances validationInstances = Utility.loadInstancesFromData(validationDataLines);
@@ -332,8 +352,8 @@ public class DecisionTreeAlgorithm {
 				int mvalue = new Random().nextInt(kvalue) + 1;
 				
 				dtaWithoutVariance = new DecisionTreeAlgorithm();
-				dtaWithoutVariance.train(trainingSetLocation);
-				dtaWithoutVariance.generateDecisionTree();
+				dtaWithoutVariance.train(trainingSetLocation, withVariance);
+				dtaWithoutVariance.generateDecisionTree(withVariance);
 				
 				for (int mvalueIndex = 0; mvalueIndex < mvalue; mvalueIndex++)
 					removeRandomNode(dtaWithoutVariance.getRootNode());
@@ -402,12 +422,16 @@ public class DecisionTreeAlgorithm {
 			System.out.println(" Test data accuracy [without variance] : " + dtaWithoutVariance.validateInstances(testInstances));
 			System.out.println(" Test data accuracy [with variance] : " + dtaWithVariance.validateInstances(testInstances));
 			
-			DecisionTreeAlgorithm bestDta = pruneDecisionTree(lvalue, kvalue, trainingSetLocation, validationSetLocation);
+			DecisionTreeAlgorithm bestDtaWithoutVariance = pruneDecisionTree(lvalue, kvalue, trainingSetLocation, validationSetLocation, true);
+			DecisionTreeAlgorithm bestDtaWithVariance = pruneDecisionTree(lvalue, kvalue, trainingSetLocation, validationSetLocation, false);
 			if (toPrint) {
-				System.out.println(" Best Decision Tree : ");
-				bestDta.printDecisionTree();
+				System.out.println(" Best Decision Tree post pruning : (without variance)");
+				bestDtaWithoutVariance.printDecisionTree();
+				System.out.println(" Best Decision Tree accuracy (without variance) : " + bestDtaWithoutVariance.validateInstances(validationInstances));
 				
-				System.out.println(" Best Decision Tree accuracy [with variance] : " + bestDta.validateInstances(validationInstances));
+				System.out.println(" Best Decision Tree post pruning : (with variance)");
+				bestDtaWithVariance.printDecisionTree();
+				System.out.println(" Best Decision Tree accuracy (with variance) : " + bestDtaWithVariance.validateInstances(validationInstances));
 			}
 			
 		} catch (MLException e) {

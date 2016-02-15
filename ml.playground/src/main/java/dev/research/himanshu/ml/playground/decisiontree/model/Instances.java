@@ -131,6 +131,21 @@ public class Instances {
 		return headerEntropyresult.negate();
 	}
 	
+	public BigDecimal calculateHeaderEntropy (Map<Integer, AttributeValue> attributeValues, boolean withVariance) throws MLException {
+		if (!withVariance) {
+			return calculateHeaderEntropy(attributeValues);
+		} else {
+			BigDecimal headerEntropyresult = new BigDecimal(1);
+			
+			for (AttributeValue attributeValue : attributeValues.values()) {
+				BigDecimal fraction = BigDecimal.valueOf(attributeValue.getAttributeValueCount()).divide(new BigDecimal(size()), globalMathContext);
+				headerEntropyresult.multiply(fraction, globalMathContext);
+			}
+			
+			return headerEntropyresult;
+		}
+	}
+		
 	public BigDecimal calculateEntropy (Map<Integer, AttributeValue> attributeValues) throws MLException {
 		BigDecimal attributeEntropyresult = new BigDecimal(0);
 		
@@ -155,6 +170,31 @@ public class Instances {
 		}
 
 		return attributeEntropyresult;
+	}
+	
+	public BigDecimal calculateEntropy (Map<Integer, AttributeValue> attributeValues, boolean withVariance) throws MLException {
+		if (!withVariance) {
+			return calculateEntropy(attributeValues);
+		} else {
+			BigDecimal attributeEntropyresult = new BigDecimal(0);
+			
+			for (AttributeValue attributeValue : attributeValues.values()) {
+				int attributeValueCount = attributeValue.getAttributeValueCount();
+				
+				BigDecimal innerVarianceResult = new BigDecimal(1);
+				for (Integer corrospondingClassifiedCount : attributeValue.getClassifiedCountMap().values()) {
+					
+					BigDecimal fraction = BigDecimal.valueOf(corrospondingClassifiedCount).divide(new BigDecimal(attributeValueCount), globalMathContext);
+					innerVarianceResult.multiply(fraction, globalMathContext);
+				}
+				
+				attributeValue.setEntropy(innerVarianceResult);
+				BigDecimal attributeGlobalFraction = BigDecimal.valueOf(attributeValueCount).divide(new BigDecimal(size()), globalMathContext);
+				attributeEntropyresult = attributeEntropyresult.add(attributeGlobalFraction.multiply(innerVarianceResult));
+			}
+
+			return attributeEntropyresult;
+		}
 	}
 
 }

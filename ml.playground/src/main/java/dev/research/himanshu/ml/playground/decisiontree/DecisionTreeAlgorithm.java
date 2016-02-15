@@ -57,6 +57,10 @@ public class DecisionTreeAlgorithm {
 	}
 	
 	public void train(String location) throws MLException {
+		train(location, false);
+	}
+	
+	public void train(String location, boolean withVariance) throws MLException {
 		
 		// load the data set, process it !
 		Instances trainingInstances = Utility.loadInstancesFromData(Utility.loadFile(location));
@@ -65,10 +69,14 @@ public class DecisionTreeAlgorithm {
 		Map<Integer, AttributeValue> headerAttributeValues = trainingInstances.getIndexer()
 				.getAttributeInstanceIndexesByName(Instances.CLASS_NAME).getAttributeValues();
 		
-		setHeaderEntropyValue(trainingInstances.calculateHeaderEntropy(headerAttributeValues));
+		setHeaderEntropyValue(trainingInstances.calculateHeaderEntropy(headerAttributeValues, withVariance));
 	}
 	
 	public void generateInitialDecisionTree() throws MLException {
+		generateDecisionTree(false);
+	}
+	
+	public void generateInitialDecisionTree(boolean withVariance) throws MLException {
 		BigDecimal minInitialAttributeEntropy = null;
 		Attribute bestInitialAttribute = null;
 		
@@ -78,7 +86,7 @@ public class DecisionTreeAlgorithm {
 				Map<Integer, AttributeValue> attributeValues = getTrainingInstances().getIndexer()
 						.getAttributeInstanceIndexesByName(attributeName).getAttributeValues();
 
-				BigDecimal attributeEntropyValue = getTrainingInstances().calculateEntropy(attributeValues);
+				BigDecimal attributeEntropyValue = getTrainingInstances().calculateEntropy(attributeValues, withVariance);
 
 				if (minInitialAttributeEntropy == null || minInitialAttributeEntropy.compareTo(attributeEntropyValue) > 0) {
 					minInitialAttributeEntropy = attributeEntropyValue;
@@ -105,6 +113,10 @@ public class DecisionTreeAlgorithm {
 	}
 
 	public void recursivelyGenerateDecisionTree(Node parent) throws MLException {
+		recursivelyGenerateDecisionTree(parent, false);
+	}
+	
+	public void recursivelyGenerateDecisionTree(Node parent, boolean withVariance) throws MLException {
 		
 		for (Iterator<AttributeValue> candidateAttributeValueIterator = parent.getCandidatesNodesList().iterator(); candidateAttributeValueIterator.hasNext();) {
 			AttributeValue candidateAttributeValue = candidateAttributeValueIterator.next();
@@ -123,7 +135,7 @@ public class DecisionTreeAlgorithm {
 
 					Map<Integer, AttributeValue> attributeValues = localInstanceIndexer.getAttributeValues();
 
-					BigDecimal attributeEntropyValue = getTrainingInstances().calculateEntropy(attributeValues);
+					BigDecimal attributeEntropyValue = getTrainingInstances().calculateEntropy(attributeValues, withVariance);
 
 					if (minAttributeEntropy == null || minAttributeEntropy.compareTo(attributeEntropyValue) > 0) {
 						minAttributeEntropy = attributeEntropyValue;
@@ -172,11 +184,15 @@ public class DecisionTreeAlgorithm {
 	}
 	
 	public void generateDecisionTree() throws MLException {
+		generateDecisionTree(false);
+	}
+	
+	public void generateDecisionTree(boolean withVariance) throws MLException {
 		try {
-			generateInitialDecisionTree();
-			System.out.println(" generated initial Decision tree : " + getRootNode().getAttribute().getAttributeName());
+			generateInitialDecisionTree(withVariance);
+			System.out.println(" generated initial Decision tree : " + (withVariance ? " (with variance)" : "(without variance)") + getRootNode().getAttribute().getAttributeName());
 			
-			recursivelyGenerateDecisionTree(getRootNode());
+			recursivelyGenerateDecisionTree(getRootNode(), withVariance);
 		} catch (MLException exception) {
 			throw new MLException(" exception while generating decision tree !", exception);
 		}
@@ -261,7 +277,16 @@ public class DecisionTreeAlgorithm {
 		for (Instance instance : instances.getInstances())
 			trueCount += (validateInstance(instance) ? 1 : 0);
 		
-		return new BigDecimal(trueCount).divide(new BigDecimal(instances.getInstances().length), Instances.globalMathContext);
+		return new BigDecimal(trueCount).divide(new BigDecimal(instances.getInstances().length), Instances.globalMathContext)
+				.multiply(new BigDecimal(100), Instances.globalMathContext);
+	}
+	
+	public void pruneDecisionTree() {
+		
+	}
+	
+	public static void main(String[] args) {
+		
 	}
 	
 }

@@ -1,0 +1,22 @@
+READ ME :
+
+1. compile the main class : DecisionTreeAlgorithm.java as 
+
+	javac DecisionTreeAlgorithm.java
+
+2. run the main clas as :
+
+	java DecisionTreeAlgorithm 100 16 ./data_sets1/training_set.csv ./data_sets1/validation_set.csv ./data_sets1/test_set.csv yes	
+
+
+
+
+where,
+
+ a) L value
+ b) K value
+ c) <training-set> location (./data_sets1/training_set.csv)
+ d) <validation-set> location (./data_sets1/validation_set.csv)
+ e) <test-set> location (./data_sets1/test_set.csv)
+ f) <to-print> (yes | no)
+

@@ -1,7 +1,10 @@
 package dev.research.himanshu.ml.playground.textclassification.classifiers;
 
 import java.io.File;
-import java.util.HashMap;
+import java.math.MathContext;
+import java.math.RoundingMode;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -21,19 +24,35 @@ import dev.research.himanshu.ml.playground.textclassification.utils.FileUtils;
 public abstract class AbstractClassifiable implements Classifiable {
 
 	private Set<String> stopwords;
-	private Map<String, Integer> globalDictionary;
-	private Map<TextClass, TextDocument[]> trainingInstances;
-	private Map<TextClass, TextDocument[]> testInstances;
+	private Map<TextClass, Map<String, Integer>> globalClassifiedDictionary;
+	private Map<TextClass, TextDocument[]> classifiedTrainingInstances;
+	private Map<TextClass, TextDocument[]> classifiedTestInstances;
+	private Set<String> globalVocabulary;
 	private int totalTrainingInstances;
 	private int totalTestInstances;
 	private File baseDirectory;
+	private Map<String, Double> learningParameters;
+	protected MathContext divisionMathContext = new MathContext(5, RoundingMode.HALF_EVEN);
 	
 	protected Set<String> getStopwords() {
+		if (this.stopwords == null)
+			this.stopwords = new LinkedHashSet<String>();
 		return stopwords;
 	}
 	
-	protected void setStopwords(Set<String> stopwords) {
-		this.stopwords = stopwords;
+	public void setLearningParameters(Map<String, Double> learningParameters) {
+		this.learningParameters = learningParameters;
+	}
+	
+	public Map<String, Double> getLearningParameters() {
+		if (null == learningParameters)
+			learningParameters = new LinkedHashMap<String, Double>();
+
+		return learningParameters;
+	}
+	
+	protected void addStopwords(Set<String> stopwords) {
+		this.stopwords.addAll(stopwords);
 	}
 	
 	protected int getTotalTrainingInstances() {
@@ -52,18 +71,18 @@ public abstract class AbstractClassifiable implements Classifiable {
 		this.totalTestInstances = totalTestInstances;
 	}
 	
-	protected Map<String, Integer> getGlobalDictionary() {
-		if (null == globalDictionary)
-			globalDictionary = new HashMap<String, Integer>();
+	protected Map<TextClass, Map<String, Integer>> getGlobalClassifiedDictionary() {
+		if (null == globalClassifiedDictionary)
+			globalClassifiedDictionary = new LinkedHashMap<TextClass, Map<String, Integer>>();
 		
-		return globalDictionary;
+		return globalClassifiedDictionary;
 	}
 
-	protected Map<TextClass, TextDocument[]> getTrainingInstances() {
-		if (null == trainingInstances) 
-			trainingInstances = new HashMap<TextClass, TextDocument[]>();
+	protected Map<TextClass, TextDocument[]> getClassifiedTrainingInstances() {
+		if (null == classifiedTrainingInstances) 
+			classifiedTrainingInstances = new LinkedHashMap<TextClass, TextDocument[]>();
 			
-		return trainingInstances;
+		return classifiedTrainingInstances;
 	}
 	
 	public File getBaseDirectory() {
@@ -74,54 +93,101 @@ public abstract class AbstractClassifiable implements Classifiable {
 		this.baseDirectory = baseDirectory;
 	}
 	
-	public Map<TextClass, TextDocument[]> getTestInstances() {
-		if (null == testInstances) 
-			testInstances = new HashMap<TextClass, TextDocument[]>();
+	public Map<TextClass, TextDocument[]> getClassifiedTestInstances() {
+		if (null == classifiedTestInstances) 
+			classifiedTestInstances = new LinkedHashMap<TextClass, TextDocument[]>();
 			
-		return testInstances;
+		return classifiedTestInstances;
 	}
 	
-	public void train() throws MLException {
+	public Set<String> getGlobalVocabulary() {
+		if (globalVocabulary == null)
+			globalVocabulary = new LinkedHashSet<String>();
+		
+		return globalVocabulary;
+	}
+	
+	public void reset() {
+		getClassifiedTestInstances().clear();
+		getClassifiedTrainingInstances().clear();
+		getGlobalClassifiedDictionary().clear();
+		getGlobalVocabulary().clear();
+		getLearningParameters().clear();
+		getStopwords().clear();
+		setTotalTestInstances(0);
+		setTotalTrainingInstances(0);
+	}
+	
+	public void train(boolean stopWordsUsed) throws MLException {
 		if (getBaseDirectory() == null)
 			throw new MLException(" training not possible, as base directory has not been set yet. ");
 		
-		setStopwords(FileUtils.loadFile(getBaseDirectory(), "stopwords.txt"));
+		if (stopWordsUsed) {
+			addStopwords(FileUtils.loadFile(getBaseDirectory(), "stopwords.txt"));
+		}
 		
 		/* load training data */
 		for (TextClass textClass : TextClass.values()) {
-			TextDocument[] documents = FileUtils.prepareTextDocuments(FileUtils.locateClassData (getBaseDirectory(), Constants.TRAIN, textClass), textClass);
-			getTrainingInstances().put(textClass, documents);
+			TextDocument[] documents = FileUtils.prepareTextDocuments(FileUtils.locateClassData (getBaseDirectory(), Constants.TRAIN, textClass), textClass, getStopwords());
+			getClassifiedTrainingInstances().put(textClass, documents);
 			
-			populateDictionary(documents);
+			populateDictionary(textClass, documents);
+			getGlobalVocabulary().addAll(getGlobalClassifiedDictionary().get(textClass).keySet());
+			
 			totalTrainingInstances += documents.length;
 		}
+		
+		manageClassDictionaries();
 		
 		/* train it! */
 		specificTraining();	
 	}
-	
+
 	protected abstract void specificTraining();
 	
+	protected Map<String, Integer> populateDictionary(TextClass textClass, TextDocument[] instances) {
+		return getGlobalClassifiedDictionary().put(textClass, populateDictionary(instances));
+	}
+	
+	private void manageClassDictionaries() {
+		for (TextClass textClass : TextClass.values()) {
+			Map<String, Integer> sourceClassDictionaryMap = getGlobalClassifiedDictionary().get(textClass);
+			
+			for (TextClass innerTextClass : TextClass.values()) {
+				if (innerTextClass == textClass)
+					continue;
+				else {
+					Map<String, Integer> targetClassDictionaryMap = getGlobalClassifiedDictionary().get(innerTextClass);
+		
+					for (Map.Entry<String, Integer> sourceClassDictionaryMapEntry : sourceClassDictionaryMap.entrySet()) {
+						if (!targetClassDictionaryMap.containsKey(sourceClassDictionaryMapEntry.getKey()))
+							targetClassDictionaryMap.put(sourceClassDictionaryMapEntry.getKey(), 0);
+					}
+				}
+			}
+		}
+	}
+
 	protected Map<String, Integer> populateDictionary(TextDocument[] instances) {
-		return populateDictionary(instances, getGlobalDictionary());
+		return populateDictionary(instances, null);
 	}
 
 	protected Map<String, Integer> populateDictionary(TextDocument[] instances, Map<String, Integer> existingDictionary) {
 		if (existingDictionary == null)
-			existingDictionary = new HashMap<String, Integer>();
+			existingDictionary = new LinkedHashMap<String, Integer>();
 		
 		StringTokenizer stringTokenizer;
 		for (TextDocument textDocument : instances) {
 			stringTokenizer = new StringTokenizer(textDocument.getContent(), Constants.DELIMITERS);
 			
 			while (stringTokenizer.hasMoreTokens()) {
-				String token = stringTokenizer.nextToken();
+				String token = stringTokenizer.nextToken().trim();
 				
-				if (!getStopwords().contains(token)) {
-					Integer oldVal = existingDictionary.put(token, 1);
-					
-					if (oldVal != null) 
-						existingDictionary.put(token, ++ oldVal);
+				if (isTokenValid(token)) {
+					if (existingDictionary.containsKey(token))
+						existingDictionary.put(token, existingDictionary.get(token) + 1);
+					else
+						existingDictionary.put(token, 1);
 				}
 			}
 		}		
@@ -130,34 +196,38 @@ public abstract class AbstractClassifiable implements Classifiable {
 	}
 	
 	protected Map<String, Integer> populateDictionary(TextDocument instance) {
-		Map<String, Integer> dictionary = new HashMap<String, Integer>();
+		Map<String, Integer> dictionary = new LinkedHashMap<String, Integer>();
 
 		StringTokenizer stringTokenizer;
 		stringTokenizer = new StringTokenizer(instance.getContent(), Constants.DELIMITERS);
 
 		while (stringTokenizer.hasMoreTokens()) {
-			String token = stringTokenizer.nextToken();
-
-			if (!getStopwords().contains(token)) {
-				Integer oldVal = dictionary.put(token, 1);
-
-				if (oldVal != null)
-					dictionary.put(token, ++oldVal);
+			String token = stringTokenizer.nextToken().trim();
+			
+			if (isTokenValid(token)) {
+				if (dictionary.containsKey(token))
+					dictionary.put(token, dictionary.get(token) + 1);
+				else
+					dictionary.put(token, 1);
 			}
 		}
-
+		
 		return dictionary;
+	}
+	
+	public boolean isTokenValid(String token) {
+		return ((!token.matches(Constants.NUMERICS)) && (!getStopwords().contains(token)) && (token.length() >= 2));
 	}
 	
 	public double test() throws MLException {
 		/* load testing data */
 		for (TextClass textClass : TextClass.values()) {
-			TextDocument[] documents = FileUtils.prepareTextDocuments(FileUtils.locateClassData (getBaseDirectory(), Constants.TEST, textClass), textClass);
-			getTestInstances().put(textClass, documents);
+			TextDocument[] documents = FileUtils.prepareTextDocuments(FileUtils.locateClassData (getBaseDirectory(), Constants.TEST, textClass), textClass, getStopwords());
+			getClassifiedTestInstances().put(textClass, documents);
 			totalTestInstances += documents.length;
 		}
 		
-		/* train it! */
+		/* test it! */
 		return specificTesting();	
 	}
 	

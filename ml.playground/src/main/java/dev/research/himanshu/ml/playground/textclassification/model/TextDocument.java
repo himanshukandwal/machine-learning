@@ -10,6 +10,7 @@ public class TextDocument {
 	
 	private TextClass textClass;
 	private String content;
+	private String documentPath;
 	
 	public TextDocument(TextClass textClass) {
 		this.textClass = textClass;
@@ -20,6 +21,11 @@ public class TextDocument {
 		this.content = content;
 	}
 
+	public TextDocument(TextClass textClass, String content, String documentPath) {
+		this(textClass, content);
+		this.documentPath = documentPath;
+	}
+	
 	public String getContent() {
 		return content;
 	}
@@ -34,6 +40,19 @@ public class TextDocument {
 	
 	public void setTextClass(TextClass textClass) {
 		this.textClass = textClass;
+	}
+	
+	public void setDocumentPath(String documentPath) {
+		this.documentPath = documentPath;
+	}
+	
+	public String getDocumentPath() {
+		return documentPath;
+	}
+	
+	@Override
+	public String toString() {
+		return textClass.getValue().toString();
 	}
 	
 }

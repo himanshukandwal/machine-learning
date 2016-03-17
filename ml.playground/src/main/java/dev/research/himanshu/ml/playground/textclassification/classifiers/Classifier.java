@@ -1,6 +1,7 @@
 package dev.research.himanshu.ml.playground.textclassification.classifiers;
 
 import java.io.File;
+import java.util.Map;
 
 import dev.research.himanshu.ml.playground.decisiontree.model.MLException;
 
@@ -12,16 +13,26 @@ import dev.research.himanshu.ml.playground.decisiontree.model.MLException;
  */
 public enum Classifier {
 	
-	LR ("\'Logistic Regression\'", null),
+	LR ("\'Logistic Regression\'", new LogisticRegression()),
 	NB ("\'Naive Bayes\'", new NaiveBayesClassifier());
 	
 	private String classifierName;
 	private Classifiable classifiable;
 	private File baseDirectory;
+	private Map<String, Double> learningParameters;
 	
 	private Classifier(String classifierName, Classifiable classifiable) {
 		this.classifierName = classifierName;
 		this.classifiable = classifiable;
+	}
+	
+	public Map<String, Double> getLearningParameters() {
+		return learningParameters;
+	}
+	
+	public void setLearningParameters(Map<String, Double> learningParameters) throws MLException {
+		this.learningParameters = learningParameters;
+		getClassifiable().setLearningParameters(learningParameters);
 	}
 	
 	public String getClassifierName() {
@@ -41,4 +52,4 @@ public enum Classifier {
 		this.baseDirectory = baseDirectory;
 	}
 	
-}	
+}

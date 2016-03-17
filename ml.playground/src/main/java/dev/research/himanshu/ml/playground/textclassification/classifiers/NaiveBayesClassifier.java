@@ -1,6 +1,7 @@
 package dev.research.himanshu.ml.playground.textclassification.classifiers;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import dev.research.himanshu.ml.playground.textclassification.model.TextClass;
@@ -16,103 +17,112 @@ public class NaiveBayesClassifier extends AbstractClassifiable {
 
 	private Map<TextClass, Double> classPriorMap;
 	private Map<String, Map<TextClass, Double>> classifiedProbabilityMap;
+
+	@Override
+	public void reset() {
+		super.reset();
+		getClassPriorMap().clear();
+		getClassifiedProbabilityMap().clear();
+	}
 	
 	public Map<TextClass, Double> getClassPriorMap() {
 		if (null == classPriorMap)
-			classPriorMap = new HashMap<TextClass, Double>();
-		
+			classPriorMap = new LinkedHashMap<TextClass, Double>();
+
 		return classPriorMap;
 	}
-	
+
 	public Map<String, Map<TextClass, Double>> getClassifiedProbabilityMap() {
 		if (classifiedProbabilityMap == null)
-			classifiedProbabilityMap = new HashMap<String, Map<TextClass, Double>>();
-		
+			classifiedProbabilityMap = new LinkedHashMap<String, Map<TextClass, Double>>();
+
 		return classifiedProbabilityMap;
 	}
 
 	@Override
 	public void specificTraining() {
-		
+
 		for (TextClass textClass : TextClass.values()) {
-			TextDocument[] classTextDocuments = getTrainingInstances().get(textClass);
-			int numberOfDocumentsInClass = classTextDocuments.length;
 			
-			double prior = (double) numberOfDocumentsInClass / getTotalTrainingInstances();
-			getClassPriorMap().put(textClass, prior);
-			
-			// class specific dictionary
-			Map<String, Integer> classSpecificDictionary = populateDictionary (classTextDocuments);
-			
+			// calculate class prior
+			getClassPriorMap().put(textClass, (double) getClassifiedTrainingInstances().get(textClass).length / getTotalTrainingInstances());
+
 			// creating denominator for conditional probability.
-		    long denominator = aggregateTokenCount (classSpecificDictionary) + getGlobalDictionary().size();
-		    
-		    for (Map.Entry<String, Integer> globalDictionaryEntry : getGlobalDictionary().entrySet()) {
-				String token = globalDictionaryEntry.getKey();
-				
-				int localDictionaryCount = (classSpecificDictionary.get(token) == null ? 0 : classSpecificDictionary.get(token));
+			long commonDenominator = aggregateTokenCount(getGlobalClassifiedDictionary().get(textClass))
+					+ getGlobalVocabulary().size();
+			
+			for (Map.Entry<String, Integer> localClassifiedDictionaryEntry : getGlobalClassifiedDictionary().get(textClass).entrySet()) {
+				String token = localClassifiedDictionaryEntry.getKey();
 				
 				// creating numerator for conditional probability.
-			    float numerator = localDictionaryCount + 1.0f;
-			    
-			    double conditionalProbability = numerator / denominator;
-			    
-			    if (!getClassifiedProbabilityMap().containsKey(token)) {
-			    	Map<TextClass, Double> classifiedProbability = new HashMap<TextClass, Double>();
-			    	classifiedProbability.put(textClass, conditionalProbability);
-			    	
-			    	getClassifiedProbabilityMap().put(token, classifiedProbability);
+				long numerator = localClassifiedDictionaryEntry.getValue() + 1;
+				
+				double fraction = (double) numerator / commonDenominator;
+
+				if (!getClassifiedProbabilityMap().containsKey(token)) {
+					Map<TextClass, Double> classifiedProbability = new HashMap<TextClass, Double>();
+					classifiedProbability.put(textClass, fraction);
+
+					getClassifiedProbabilityMap().put(token, classifiedProbability);
 				} else {
 					Map<TextClass, Double> classifiedProbability = getClassifiedProbabilityMap().get(token);
-					classifiedProbability.put(textClass, conditionalProbability);
+					classifiedProbability.put(textClass, fraction);
 				}
-		    }
+			}
 		}
 	}
 
 	@Override
 	protected double specificTesting() {
+		int totalCorrectClassifications = 0;
 		
-		int correctClassifications = 0;
-		
-		for (TextClass textClass : TextClass.values()) {
-			TextDocument[] classTextDocuments = getTrainingInstances().get(textClass);
+		for (Map.Entry<TextClass, TextDocument[]> getClassifiedTestInstancesEntry : getClassifiedTestInstances().entrySet()) {
 			
-			for (TextDocument testInstanceClassTextDocuments : classTextDocuments) {
-				Map<TextClass, Double> classificationCountMap = new HashMap<TextClass, Double>();
+			TextClass originalTextClass = getClassifiedTestInstancesEntry.getKey();
+			TextDocument[] classTextDocuments = getClassifiedTestInstancesEntry.getValue();
+			int correctClassifications = 0;
+			
+			for (TextDocument textDocument : classTextDocuments) {
+				Map<TextClass, Double> classificationDataMap = new HashMap<TextClass, Double>();
+
+				// instance specific dictionary
+				Map<String, Integer> localInstanceDictionary = populateDictionary(textDocument);
 				
-				// class specific dictionary
-				Map<String, Integer> classSpecificDictionary = populateDictionary (testInstanceClassTextDocuments);
-				for (TextClass localTextClass : TextClass.values()) {
-					Double textClassCount = Math.log (getClassPriorMap().get(localTextClass));
-					
-					for (Map.Entry<String, Integer> classSpecificDictionaryEntry : classSpecificDictionary.entrySet()) {
-						String classToken = classSpecificDictionaryEntry.getKey();
-						
-						Map<TextClass, Double> classifiedProbability = getClassifiedProbabilityMap().get(classToken);
-						textClassCount += ((classifiedProbability == null) ? 0 : Math.log (classifiedProbability.get(textClass)));
+				for (TextClass textClass : TextClass.values()) {
+					Double overallInstanceClassficationValue = (Math.log (getClassPriorMap().get(textClass)) / Math.log(2));
+
+					for (Map.Entry<String, Integer> localInstanceDictionaryEntry : localInstanceDictionary.entrySet()) {
+						String token = localInstanceDictionaryEntry.getKey();
+						Double classifiedConditionalProbablity;
+
+						if (getClassifiedProbabilityMap().containsKey(token)) {
+							classifiedConditionalProbablity = getClassifiedProbabilityMap().get(token).get(textClass);
+							overallInstanceClassficationValue += (double) localInstanceDictionaryEntry.getValue() * ((Math.log (classifiedConditionalProbablity) / Math.log(2)));
+						}
 					}
-					
-					classificationCountMap.put(localTextClass, textClassCount);
+
+					classificationDataMap.put(textClass, overallInstanceClassficationValue);
 				}
 				
 				// best class for the test instance
-				Double maxCount = Double.MIN_VALUE;
+				Double maxCount = null;
 				TextClass bestClass = null;
-				
-				for (Map.Entry<TextClass, Double> classificationCountMapEntry : classificationCountMap.entrySet()) {
-					if (classificationCountMapEntry.getValue() > maxCount) {
-						maxCount = classificationCountMapEntry.getValue();
-						bestClass = classificationCountMapEntry.getKey();
+
+				for (Map.Entry<TextClass, Double> classificationDataEntry : classificationDataMap.entrySet()) {
+					if (maxCount == null || (classificationDataEntry.getValue().compareTo(maxCount) > 0)) {
+						maxCount = classificationDataEntry.getValue();
+						bestClass = classificationDataEntry.getKey();
 					}
 				}
-				
-				if (textClass == bestClass) {
+
+				if (originalTextClass == bestClass)
 					correctClassifications ++;
-				}
 			}
+			totalCorrectClassifications += correctClassifications;
+			System.out.println("\t" + originalTextClass.getValue() + " accuracy : " + (double) (correctClassifications * 100d / classTextDocuments.length));
 		}
-		return correctClassifications / getTotalTestInstances();
+		
+		return (double) (totalCorrectClassifications * 100d / getTotalTestInstances());
 	}
-	
+
 }

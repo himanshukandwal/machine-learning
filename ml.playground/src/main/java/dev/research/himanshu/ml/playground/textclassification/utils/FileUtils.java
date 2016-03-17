@@ -22,7 +22,7 @@ public class FileUtils {
 	public static File[] locateClassData(File baseDirectory, String type, TextClass textClass) {
 		File[] textClassFiles = null;
 		File childClassDirectory = new File(baseDirectory, type + File.separator + textClass.getValue());
-
+		
 		if (childClassDirectory.exists() && childClassDirectory.isDirectory()) {
 			textClassFiles = childClassDirectory.listFiles(new FilenameFilter() {
 
@@ -60,24 +60,25 @@ public class FileUtils {
 		return lines;
 	}
 
-	public static TextDocument[] prepareTextDocuments(File[] textClassFiles, TextClass textClass) throws MLException {
+	public static TextDocument[] prepareTextDocuments(File[] textClassFiles, TextClass textClass, Set<String> stopwords) throws MLException {
 		TextDocument[] textDocuments = new TextDocument[textClassFiles.length];
 
 		try {
 			BufferedReader bufferedReader = null;
-			for (int index = 0; index < textClassFiles.length; index++) {
+			for (int index = 0; index < textClassFiles.length; index ++) {
 				File textClassFile = textClassFiles[index];
 
 				bufferedReader = new BufferedReader(new FileReader(textClassFile));
 				StringBuffer sb = new StringBuffer();
 				String line = null;
 
-				while ((line = bufferedReader.readLine()) != null)
+				while ((line = bufferedReader.readLine()) != null) {
 					sb.append(line).append(" ");
+				}
 
 				bufferedReader.close();
 
-				textDocuments[index] = new TextDocument(textClass, sb.toString());
+				textDocuments[index] = new TextDocument(textClass, sb.toString(), textClassFile.getAbsolutePath());
 			}
 		} catch (Exception exception) {
 			throw new MLException(" caught in exception while loading text documents !");

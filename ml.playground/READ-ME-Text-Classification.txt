@@ -1,0 +1,41 @@
+From the commandline, please go to the source_code directory.
+
+Steps to compile :
+
+	javac TextClassifier.java
+
+
+Steps to execute :
+
+	a) Naive Bayes
+
+			java TextClassifier ./data NB
+
+
+			where : 
+				./data = Folder present within 'source_code' directory containing the training and testing data. 
+						 This could be any location where the training and test files are present.
+
+
+	b) Logistic Regression
+
+			java TextClassifier ./data LR 
+
+			or
+
+			java TextClassifier ./data LR 0.1 5 50
+
+			or
+
+			java TextClassifier ./data LR 0.1 0.01 100
+
+			where : 
+				./data 	= Folder present within 'source_code' directory containing the training and testing data. 
+						  This could be any location where the training and test files are present.
+				0.1 	= learning rate
+				5 		= lambda value
+				50		= repetitions.
+
+
+
+

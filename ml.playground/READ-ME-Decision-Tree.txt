@@ -8,9 +8,6 @@ READ ME :
 
 	java DecisionTreeAlgorithm 100 16 ./data_sets1/training_set.csv ./data_sets1/validation_set.csv ./data_sets1/test_set.csv yes	
 
-
-
-
 where,
 
  a) L value

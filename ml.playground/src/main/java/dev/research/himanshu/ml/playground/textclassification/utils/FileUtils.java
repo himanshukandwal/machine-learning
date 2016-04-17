@@ -60,7 +60,7 @@ public class FileUtils {
 		return lines;
 	}
 
-	public static TextDocument[] prepareTextDocuments(File[] textClassFiles, TextClass textClass, Set<String> stopwords) throws MLException {
+	public static TextDocument[] prepareTextDocuments(File[] textClassFiles, TextClass textClass) throws MLException {
 		TextDocument[] textDocuments = new TextDocument[textClassFiles.length];
 
 		try {

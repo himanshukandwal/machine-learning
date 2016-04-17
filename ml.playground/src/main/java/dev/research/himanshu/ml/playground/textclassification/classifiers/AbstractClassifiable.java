@@ -128,7 +128,7 @@ public abstract class AbstractClassifiable implements Classifiable {
 		
 		/* load training data */
 		for (TextClass textClass : TextClass.values()) {
-			TextDocument[] documents = FileUtils.prepareTextDocuments(FileUtils.locateClassData (getBaseDirectory(), Constants.TRAIN, textClass), textClass, getStopwords());
+			TextDocument[] documents = FileUtils.prepareTextDocuments(FileUtils.locateClassData (getBaseDirectory(), Constants.TRAIN, textClass), textClass);
 			getClassifiedTrainingInstances().put(textClass, documents);
 			
 			populateDictionary(textClass, documents);
@@ -222,7 +222,7 @@ public abstract class AbstractClassifiable implements Classifiable {
 	public double test() throws MLException {
 		/* load testing data */
 		for (TextClass textClass : TextClass.values()) {
-			TextDocument[] documents = FileUtils.prepareTextDocuments(FileUtils.locateClassData (getBaseDirectory(), Constants.TEST, textClass), textClass, getStopwords());
+			TextDocument[] documents = FileUtils.prepareTextDocuments(FileUtils.locateClassData (getBaseDirectory(), Constants.TEST, textClass), textClass);
 			getClassifiedTestInstances().put(textClass, documents);
 			totalTestInstances += documents.length;
 		}

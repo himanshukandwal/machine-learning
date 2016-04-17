@@ -14,7 +14,8 @@ import dev.research.himanshu.ml.playground.decisiontree.model.MLException;
 public enum Classifier {
 	
 	LR ("\'Logistic Regression\'", new LogisticRegression()),
-	NB ("\'Naive Bayes\'", new NaiveBayesClassifier());
+	NB ("\'Naive Bayes\'", new NaiveBayesClassifier()),
+	PC ("\'Perceptron\'", new PerceptronClassifier());
 	
 	private String classifierName;
 	private Classifiable classifiable;

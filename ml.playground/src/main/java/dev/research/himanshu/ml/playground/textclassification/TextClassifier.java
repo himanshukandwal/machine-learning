@@ -71,15 +71,19 @@ public class TextClassifier {
 		getClassifier().getClassifiable().reset();
 	}
 	
-	private static Map<String, Double> parseArguments(String[] args) {
+	private static Map<String, Double> parseArguments(Classifier classifier, String[] args) {
 		Map<String, Double> parametermap = new HashMap<String, Double>();
 		
 		for (int index = 0; index < args.length; index ++) {
 			if (index == 0)
 				parametermap.put("learningRate", Double.valueOf(args[index]));
-			else if (index == 1)
-				parametermap.put("lamda", Double.valueOf(args[index]));
-			else if (index == 2)
+			else if (index == 1) {
+				if (classifier == Classifier.PC) {
+					parametermap.put("repetitions", Double.valueOf(args[index]));
+					break;
+				} else
+					parametermap.put("lamda", Double.valueOf(args[index]));
+			} else if (index == 2)
 				parametermap.put("repetitions", Double.valueOf(args[index]));
 		}
 		
@@ -87,25 +91,19 @@ public class TextClassifier {
 	}
 	
 	public static void main(String[] args) throws MLException {
-		args = new String[5];
-		args[0] = System.getProperty("user.dir") + "/src/main/resources/textClassification/data_set_1/";
-		args[1] = "LR";
-		args[2] = "0.01";
-		args[3] = "0.01";
-		args[4] = "100";
-		
+
 		if (args.length < 2) {
 			System.out.println(" please provide valid inputs. kindly provide input in the following format :");
-			System.out.println(" TextClassifierImpl <directory-location-containing-test-and-training-dirs> <classifier-name> <learning-rate> <lambda-value> <repetitions> ");
-			System.out.println(" classifier-name 	: LR or NB");
+			System.out.println(" TextClassifier <directory-location-containing-test-and-training-dirs> <classifier-name> <learning-rate> <lambda-value> <repetitions> ");
+			System.out.println(" classifier-name 	: LR or NB or PC");
 			System.out.println(" learning-rate 		:  0.01");
 			System.out.println(" lambda-value		:  0.8");
 			System.out.println(" repetitions		:  500");
-			System.out.println(" \t TextClassifierImpl ./data NB ");
-			System.out.println(" \t TextClassifierImpl ./data LR ");
-			System.out.println(" \t TextClassifierImpl ./data LR 0.01 0.8 200");
-			System.out.println(" \t TextClassifierImpl ./data LR 0.01 0.9 500");
-			System.out.println(" \t TextClassifierImpl ./data LR 0.5 0.8 500");
+			System.out.println(" \t TextClassifier ./data NB ");
+			System.out.println(" \t TextClassifier ./data LR ");
+			System.out.println(" \t TextClassifier ./data LR 0.01 0.8 200");
+			System.out.println(" \t TextClassifier ./data LR 0.01 0.9 500");
+			System.out.println(" \t TextClassifier ./data LR 0.5 0.8 500");
 			System.exit(1);
 		} 
 		
@@ -131,7 +129,7 @@ public class TextClassifier {
 		Map<String, Double> parameterMap = null;
 		
 		if (args.length > 2)
-			parameterMap = parseArguments(Arrays.copyOfRange(args, 2, args.length));
+			parameterMap = parseArguments(classifier, Arrays.copyOfRange(args, 2, args.length));
 		
 		TextClassifier textClassifier;
 		try {
@@ -140,6 +138,7 @@ public class TextClassifier {
 			while (loopIndex ++ < 2) {
 				textClassifier = new TextClassifier(baseDirectory, classifier);
 				
+				// because of singleton nature of enums.
 				textClassifier.reset();
 				
 				if (parameterMap != null)
